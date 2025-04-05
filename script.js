@@ -1,7 +1,7 @@
 const canvas = document.getElementById('tetris');
 const context = canvas.getContext('2d');
 
-// Define the T piece (you can add other shapes here)
+// Define the T piece
 const matrix = [
   [1, 1, 1],
   [0, 1, 0]
@@ -17,12 +17,13 @@ const player = {
   score: 0
 };
 
-// Set up the game's main loop
 let lastTime = 0;
+
+// Game loop to update the game
 function update(time = 0) {
   const deltaTime = time - lastTime;
   lastTime = time;
-  
+
   // Move the player piece down by 1 unit
   player.pos.y++;
 
@@ -35,10 +36,7 @@ function update(time = 0) {
     player.matrix = matrix; // Reset to the starting piece
   }
 
-  // Draw the updated game state
   draw();
-  
-  // Call the next update
   requestAnimationFrame(update);
 }
 
@@ -50,13 +48,9 @@ function draw() {
   context.fillStyle = '#000';
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Draw the arena (merged pieces)
   drawMatrix(arena, {x: 0, y: 0});
-
-  // Draw the falling piece (the current piece the player controls)
   drawMatrix(player.matrix, player.pos);
 
-  // Display the score
   context.fillStyle = 'white';
   context.font = '1px monospace';
   context.fillText(`Score: ${player.score}`, 1, 1);
@@ -67,7 +61,7 @@ function drawMatrix(matrix, offset) {
   matrix.forEach((row, y) => {
     row.forEach((cell, x) => {
       if (cell !== 0) {
-        context.fillStyle = 'blue'; // Change color if needed
+        context.fillStyle = 'blue'; // Color the piece
         context.fillRect(x + offset.x, y + offset.y, 1, 1);
       }
     });
@@ -97,4 +91,28 @@ function collides(arena, player) {
   return false;
 }
 
-// Merge the player's piece with
+// Merge the player's piece with the arena
+function merge(arena, player) {
+  player.matrix.forEach((row, y) => {
+    row.forEach((cell, x) => {
+      if (cell !== 0) {
+        arena[y + player.pos.y][x + player.pos.x] = cell;
+      }
+    });
+  });
+}
+
+// Add keyboard controls for left-right movement
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'ArrowLeft') {
+    player.pos.x--;
+    if (collides(arena, player)) {
+      player.pos.x++;
+    }
+  } else if (event.key === 'ArrowRight') {
+    player.pos.x++;
+    if (collides(arena, player)) {
+      player.pos.x--;
+    }
+  }
+});
