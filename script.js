@@ -24,9 +24,21 @@ function drawMatrix(matrix, offset) {
 }
 
 function draw() {
+  // Clear the canvas
   context.fillStyle = '#000';
   context.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw the arena (merged pieces)
+  drawMatrix(arena, {x: 0, y: 0});
+  
+  // Draw the falling piece on top
   drawMatrix(player.matrix, player.pos);
+
+  // Display the score (if you want to keep it visible)
+  context.fillStyle = 'white';
+  context.font = '1px monospace';
+  context.fillText(`Score: ${score}`, 1, 1);
+
 }
 
 function merge(arena, player) {
