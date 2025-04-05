@@ -1,114 +1,95 @@
 const canvas = document.getElementById('tetris');
 const context = canvas.getContext('2d');
-context.scale(20, 20);
 
-function createPiece(type) {
-  if (type === 'T') {
-    return [
-      [0, 0, 0],
-      [1, 1, 1],
-      [0, 1, 0],
-    ];
+// Define the T piece (you can add other shapes here)
+const matrix = [
+  [1, 1, 1],
+  [0, 1, 0]
+];
+
+// Create the game arena (12 columns x 20 rows)
+const arena = createMatrix(12, 20);
+
+// Set up the player with a T piece
+const player = {
+  matrix: matrix,
+  pos: {x: 5, y: 0},
+  score: 0
+};
+
+// Set up the game's main loop
+let lastTime = 0;
+function update(time = 0) {
+  const deltaTime = time - lastTime;
+  lastTime = time;
+  
+  // Move the player piece down by 1 unit
+  player.pos.y++;
+
+  // Check for collisions
+  if (collides(arena, player)) {
+    player.pos.y--; // Undo the move
+    merge(arena, player); // Merge the piece into the arena
+    player.pos.y = 0; // Reset to the top
+    player.pos.x = 5; // Reset to the center
+    player.matrix = matrix; // Reset to the starting piece
   }
+
+  // Draw the updated game state
+  draw();
+  
+  // Call the next update
+  requestAnimationFrame(update);
 }
 
+// Start the game loop
+requestAnimationFrame(update);
+
+// Draw the current game state
+function draw() {
+  context.fillStyle = '#000';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw the arena (merged pieces)
+  drawMatrix(arena, {x: 0, y: 0});
+
+  // Draw the falling piece (the current piece the player controls)
+  drawMatrix(player.matrix, player.pos);
+
+  // Display the score
+  context.fillStyle = 'white';
+  context.font = '1px monospace';
+  context.fillText(`Score: ${player.score}`, 1, 1);
+}
+
+// Draw a matrix (either the arena or the falling piece)
 function drawMatrix(matrix, offset) {
   matrix.forEach((row, y) => {
-    row.forEach((value, x) => {
-      if (value !== 0) {
-        context.fillStyle = 'red';
+    row.forEach((cell, x) => {
+      if (cell !== 0) {
+        context.fillStyle = 'blue'; // Change color if needed
         context.fillRect(x + offset.x, y + offset.y, 1, 1);
       }
     });
   });
 }
 
-function draw() {
-  // Clear the canvas
-  context.fillStyle = '#000';
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Draw the arena (merged pieces)
-  drawMatrix(arena, {x: 0, y: 0});
-  
-  // Draw the falling piece on top
-  drawMatrix(player.matrix, player.pos);
-
-  // Display the score (if you want to keep it visible)
-  context.fillStyle = 'white';
-  context.font = '1px monospace';
-  context.fillText(`Score: ${score}`, 1, 1);
-
-}
-
-function merge(arena, player) {
-  player.matrix.forEach((row, y) => {
-    row.forEach((value, x) => {
-      if (value !== 0) {
-        arena[y + player.pos.y][x + player.pos.x] = value;
-      }
-    });
-  });
-}
-
-function playerDrop() {
-  player.pos.y++;
-  if (collide(arena, player)) {
-    player.pos.y--;
-    merge(arena, player);
-    playerReset();
+// Create an empty matrix for the game arena
+function createMatrix(width, height) {
+  const matrix = [];
+  while (height--) {
+    matrix.push(new Array(width).fill(0));
   }
-  dropCounter = 0;
+  return matrix;
 }
 
-function playerMove(dir) {
-  player.pos.x += dir;
-  if (collide(arena, player)) {
-    player.pos.x -= dir;
-  }
-}
-
-function playerRotate() {
-  const pos = player.pos.x;
-  let offset = 1;
-  rotate(player.matrix);
-  while (collide(arena, player)) {
-    player.pos.x += offset;
-    offset = -(offset + (offset > 0 ? 1 : -1));
-    if (offset > player.matrix[0].length) {
-      rotate(player.matrix, -1);
-      player.pos.x = pos;
-      return;
-    }
-  }
-}
-
-function rotate(matrix) {
-  for (let y = 0; y < matrix.length; y++) {
-    for (let x = 0; x < y; x++) {
-      [
-        matrix[x][y], matrix[y][x]
-      ] = [
-        matrix[y][x], matrix[x][y]
-      ];
-    }
-  }
-  matrix.forEach(row => row.reverse());
-}
-
-function playerReset() {
-  player.matrix = createPiece('T');
-  player.pos.y = 0;
-  player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
-}
-
-function collide(arena, player) {
+// Check if the player's piece has collided with something in the arena
+function collides(arena, player) {
   const [m, o] = [player.matrix, player.pos];
-  for (let y = 0; y < m.length; ++y) {
-    for (let x = 0; x < m[y].length; ++x) {
-      if (m[y][x] !== 0 &&
-          (arena[y + o.y] &&
-           arena[y + o.y][x + o.x]) !== 0) {
+  for (let y = 0; y < m.length; y++) {
+    for (let x = 0; x < m[y].length; x++) {
+      if (m[y][x] !== 0 && 
+        (arena[y + o.y] && arena[y + o.y][x + o.x]) !== 0) {
         return true;
       }
     }
@@ -116,49 +97,4 @@ function collide(arena, player) {
   return false;
 }
 
-function createMatrix(w, h) {
-  const matrix = [];
-  while (h--) {
-    matrix.push(new Array(w).fill(0));
-  }
-  return matrix;
-}
-
-const arena = createMatrix(12, 20);
-
-let dropCounter = 0;
-let dropInterval = 1000;
-let lastTime = 0;
-
-function update(time = 0) {
-  const deltaTime = time - lastTime;
-  lastTime = time;
-
-  dropCounter += deltaTime;
-  if (dropCounter > dropInterval) {
-    playerDrop();
-  }
-
-  draw();
-  requestAnimationFrame(update);
-}
-
-document.addEventListener('keydown', event => {
-  if (event.key === 'ArrowLeft') {
-    playerMove(-1);
-  } else if (event.key === 'ArrowRight') {
-    playerMove(1);
-  } else if (event.key === 'ArrowDown') {
-    playerDrop();
-  } else if (event.key === 'ArrowUp' || event.key === ' ') {
-    playerRotate();
-  }
-});
-
-const player = {
-  pos: {x: 5, y: 0},
-  matrix: createPiece('T'),
-};
-
-playerReset();
-update();
+// Merge the player's piece with
